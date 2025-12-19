@@ -1,0 +1,1214 @@
+openapi: 3.0.0
+info:
+  title: HANA Backend API
+  version: 1.0.0
+  description: |
+    하나 백엔드 API 문서입니다.
+
+    ## 인증 방식
+    - JWT Bearer 토큰을 사용한 인증
+    - 로그인 후 받은 `accessToken`을 Authorization 헤더에 포함하여 요청
+    - 토큰 만료 시 `refreshToken`을 사용하여 갱신
+
+    ## 응답 형식
+    모든 API는 다음과 같은 공통 응답 형식을 사용합니다:
+    ```json
+    {
+      "statusCode": 200,
+      "message": "성공 메시지",
+      "data": { ... }
+    }
+    ```
+
+  contact:
+    name: HANA Backend Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://hanaa.p-e.kr
+    description: Production server
+  - url: http://localhost:8080
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users:
+    post:
+      summary: 회원가입
+      description: 새로운 사용자를 등록합니다.
+      tags:
+        - 사용자
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+            example:
+              userId: 2171140
+              password: '1234'
+              name: '홍길동'
+              firstTrack: '웹공학'
+              secondTrack: '데이터베이스'
+              isNotificationAgreed: true
+              categoryNames: ['학사', '장학']
+      responses:
+        '201':
+          description: 회원가입 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistrationResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 중복된 사용자 ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/login:
+    post:
+      summary: 로그인 (사용자 라우터)
+      description: 사용자 ID와 비밀번호로 로그인합니다.
+      tags:
+        - 사용자
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              userId: 2171140
+              password: '1234'
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh-token:
+    post:
+      summary: 토큰 갱신
+      description: 만료된 액세스 토큰을 리프레시 토큰으로 갱신합니다.
+      tags:
+        - 인증
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+      responses:
+        '200':
+          description: 토큰 갱신 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 유효하지 않은 리프레시 토큰
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      summary: 로그아웃
+      description: 현재 세션을 종료하고 리프레시 토큰을 무효화합니다.
+      tags:
+        - 인증
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+            example:
+              refreshToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+      responses:
+        '200':
+          description: 로그아웃 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/profile:
+    get:
+      summary: 프로필 조회
+      description: 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+      tags:
+        - 인증
+      responses:
+        '200':
+          description: 프로필 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/urgent:
+    get:
+      summary: 긴급 공지 조회
+      description: 종료일이 임박한 공지 3개를 D-day와 함께 조회합니다.
+      tags:
+        - 공지
+      responses:
+        '200':
+          description: 긴급 공지 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrgentPostsResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/category/{category}:
+    get:
+      summary: 카테고리별 공지 조회
+      description: 특정 카테고리의 공지를 커서 페이지네이션으로 조회합니다.
+      tags:
+        - 공지
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: 카테고리명
+          schema:
+            type: string
+            example: '한성공지'
+        - name: cursor
+          in: query
+          required: false
+          description: 다음 페이지를 위한 커서 (이전 응답의 nextCursor 값)
+          schema:
+            type: string
+            example: '123'
+        - name: limit
+          in: query
+          required: false
+          description: 한 번에 가져올 공지 개수 (기본값: 5)
+          schema:
+            type: integer
+            default: 5
+            example: 5
+      responses:
+        '200':
+          description: 카테고리별 공지 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryPostsResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/notifications:
+    get:
+      summary: 알림 설정한 공지 조회
+      description: 현재 사용자가 알림을 설정한 공지를 커서 페이지네이션으로 조회합니다.
+      tags:
+        - 공지
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: 다음 페이지를 위한 커서 (이전 응답의 nextCursor 값)
+          schema:
+            type: string
+            example: '123'
+        - name: limit
+          in: query
+          required: false
+          description: 한 번에 가져올 공지 개수 (기본값: 5)
+          schema:
+            type: integer
+            default: 5
+            example: 5
+      responses:
+        '200':
+          description: 알림 설정한 공지 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPostsResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /posts/interested:
+    get:
+      summary: 관심 카테고리 공지 조회
+      description: 현재 사용자의 관심 카테고리에 해당하는 공지를 커서 페이지네이션으로 조회합니다.
+      tags:
+        - 공지
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: 다음 페이지를 위한 커서 (이전 응답의 nextCursor 값)
+          schema:
+            type: string
+            example: '123'
+        - name: limit
+          in: query
+          required: false
+          description: 한 번에 가져올 공지 개수 (기본값: 3)
+          schema:
+            type: integer
+            default: 3
+            example: 3
+      responses:
+        '200':
+          description: 관심 카테고리 공지 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPostsResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/categories:
+    get:
+      summary: 관심 카테고리 조회
+      description: 현재 사용자의 관심 카테고리 목록을 조회합니다.
+      tags:
+        - 사용자
+      responses:
+        '200':
+          description: 관심 카테고리 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserCategoriesResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/categories/{categoryName}:
+    put:
+      summary: 관심 카테고리 토글
+      description: 특정 카테고리를 관심 카테고리에 추가하거나 제거합니다. 이미 관심 카테고리인 경우 제거하고, 아닌 경우 추가합니다.
+      tags:
+        - 사용자
+      parameters:
+        - name: categoryName
+          in: path
+          required: true
+          description: 카테고리 이름
+          schema:
+            type: string
+            example: '한성공지'
+      responses:
+        '200':
+          description: 관심 카테고리 토글 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToggleCategoryResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/{post_id}:
+    put:
+      summary: 알림 토글
+      description: 특정 포스트에 대한 알림을 설정하거나 해제합니다. 이미 알림이 설정되어 있으면 해제하고, 설정되어 있지 않으면 설정합니다.
+      tags:
+        - 알림
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: 포스트 ID
+          schema:
+            type: string
+            example: '1234567890123456789'
+      responses:
+        '200':
+          description: 알림 토글 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationToggleResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      summary: 알림 상태 확인
+      description: 현재 사용자가 특정 포스트에 알림을 설정했는지 확인합니다.
+      tags:
+        - 알림
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          description: 포스트 ID
+          schema:
+            type: string
+            example: '1234567890123456789'
+      responses:
+        '200':
+          description: 알림 상태 확인 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '400':
+          description: 잘못된 요청
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 인증 필요
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chat:
+    post:
+      summary: 채팅 질문 처리
+      description: 사용자의 질문을 FastAPI 서버로 전달하고 파싱된 응답을 반환합니다.
+      tags:
+        - 채팅
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: 사용자가 입력한 질문
+                  example: "공학 경진 대회 판넬 관련해서 공지 있어?"
+      responses:
+        '200':
+          description: 채팅 응답 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: 잘못된 요청 (질문이 없거나 빈 문자열)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 서버 오류 (FastAPI 서버 연결 실패 등)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT 토큰을 Authorization 헤더에 포함하여 전송
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '성공'
+        data:
+          type: object
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: '에러 메시지'
+        data:
+          type: object
+          nullable: true
+
+    UserRegistration:
+      type: object
+      required:
+        - userId
+        - password
+        - name
+        - firstTrack
+        - secondTrack
+        - isNotificationAgreed
+        - categoryNames
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 사용자 ID
+          example: 2171140
+        password:
+          type: string
+          description: 비밀번호
+          example: '1234'
+        name:
+          type: string
+          description: 사용자 이름
+          example: '홍길동'
+        firstTrack:
+          type: string
+          description: 첫 번째 트랙
+          example: '웹공학'
+        secondTrack:
+          type: string
+          description: 두 번째 트랙
+          example: '데이터베이스'
+        isNotificationAgreed:
+          type: boolean
+          description: 알림 동의 여부
+          example: true
+        categoryNames:
+          type: array
+          items:
+            type: string
+          description: 관심 카테고리 목록
+          example: ['웹개발', '데이터베이스']
+
+    UserRegistrationResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: '회원가입 성공'
+        data:
+          type: object
+          properties:
+            userId:
+              type: string
+              example: '2171140'
+
+    LoginRequest:
+      type: object
+      required:
+        - userId
+        - password
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 사용자 ID
+          example: 2171140
+        password:
+          type: string
+          description: 비밀번호
+          example: '1234'
+
+    LoginResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '로그인 성공'
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: 액세스 토큰
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            refreshToken:
+              type: string
+              description: 리프레시 토큰
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            userId:
+              type: integer
+              format: int64
+              description: 사용자 ID
+              example: 2171140
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: 리프레시 토큰
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+    RefreshTokenResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: 'Token refreshed successfully'
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+              description: 새로운 액세스 토큰
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+            refreshToken:
+              type: string
+              description: 새로운 리프레시 토큰
+              example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+    LogoutRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: 리프레시 토큰
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+
+    ProfileResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '프로필 조회 성공'
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              description: 사용자 내부 ID
+              example: '1234567890123456789'
+            userId:
+              type: string
+              description: 사용자 ID (학번)
+              example: '2171140'
+            name:
+              type: string
+              description: 사용자 이름
+              example: '홍길동'
+            firstTrack:
+              type: string
+              nullable: true
+              description: 첫 번째 트랙
+              example: '웹공학'
+            secondTrack:
+              type: string
+              nullable: true
+              description: 두 번째 트랙
+              example: '데이터베이스'
+            isNotificationAgreed:
+              type: boolean
+              description: 알림 동의 여부
+              example: true
+            categories:
+              type: array
+              description: 관심 카테고리 목록
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 카테고리 ID
+                    example: '1'
+                  name:
+                    type: string
+                    description: 카테고리 이름
+                    example: '한성공지'
+                  createdAt:
+                    type: string
+                    format: date-time
+                    description: 관심 카테고리 추가일
+                    example: '2025-09-16T04:03:04.237Z'
+              example:
+                - id: '1'
+                  name: '한성공지'
+                  createdAt: '2025-09-16T04:03:04.237Z'
+                - id: '2'
+                  name: '취업'
+                  createdAt: '2025-09-16T04:03:04.237Z'
+            createdAt:
+              type: string
+              format: date-time
+              description: 계정 생성일
+              example: '2025-09-16T04:03:04.237Z'
+            updatedAt:
+              type: string
+              format: date-time
+              description: 계정 수정일
+              example: '2025-09-16T04:04:30.000Z'
+
+    CurrentUserResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '사용자 정보를 성공적으로 가져왔습니다.'
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: 사용자 내부 ID
+            userId:
+              type: integer
+              format: int64
+              description: 사용자 ID
+            name:
+              type: string
+              description: 사용자 이름
+
+    NotificationResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 201
+        message:
+          type: string
+          example: '알림이 성공적으로 생성되었습니다.'
+        data:
+          type: object
+          properties:
+            postId:
+              type: string
+              description: 포스트 ID
+              example: '1234567890123456789'
+            postTitle:
+              type: string
+              description: 포스트 제목
+              example: '새로운 공지사항'
+            postCategory:
+              type: string
+              description: 포스트 카테고리
+              example: '웹개발'
+            userId:
+              type: string
+              description: 사용자 ID
+              example: '2171140'
+            userName:
+              type: string
+              description: 사용자 이름
+              example: '홍길동'
+            notificationId:
+              type: string
+              description: 알림 ID
+              example: '9876543210987654321'
+
+    NotificationToggleResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '알림이 성공적으로 설정되었습니다.'
+        data:
+          type: object
+          properties:
+            action:
+              type: string
+              enum: [added, removed]
+              description: 수행된 작업 (설정/해제)
+              example: 'added'
+            postId:
+              type: string
+              description: 포스트 ID
+              example: '1234567890123456789'
+            postTitle:
+              type: string
+              description: 포스트 제목
+              example: '새로운 공지사항'
+            postCategory:
+              type: string
+              description: 포스트 카테고리
+              example: '웹개발'
+            userId:
+              type: string
+              description: 사용자 ID
+              example: '2171140'
+            userName:
+              type: string
+              description: 사용자 이름
+              example: '홍길동'
+            notificationId:
+              type: string
+              description: 알림 ID (설정된 경우에만 포함)
+              example: '9876543210987654321'
+
+    NotificationListResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '해당 포스트에 알림이 설정되어 있습니다.'
+        data:
+          type: object
+          properties:
+            postId:
+              type: string
+              description: 포스트 ID
+              example: '1234567890123456789'
+            isNotificationSet:
+              type: boolean
+              description: 알림 설정 여부
+              example: true
+
+    ChatResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '채팅 응답을 성공적으로 받았습니다.'
+        data:
+          type: object
+          properties:
+            mainAnswer:
+              type: string
+              description: 주요 답변 내용
+              example: '안녕하세요! 한성대학교 공학 경진 대회에 대한 공지사항을 알려드릴게요.\n\n### 제21회 한성공학경진대회 안내\n- **일시**: 2025년 9월 25일(목) ~ 9월 26일(금)\n- **장소**: 낙산관 3층 체육관\n- **참여 대상**: 한성대학교 IT공과대학 학생들의 작품 및 연구 성과 전시'
+            relatedLinks:
+              type: array
+              description: 연관 링크 목록 (이모지와 설명 텍스트 포함)
+              items:
+                type: string
+              example:
+                - '🔗 제21회 한성공학경진대회 개최 공지: https://hsportal.hansung.ac.kr/ko/program/all/view/13320/description'
+                - '🔗 2025학년도 대학연합 HSP 공유대회 모집 안내(9.1~9.30): https://www.hansung.ac.kr/bbs/hansung/143/270536/artclView.do'
+                - '🔗 [KBS-시청자미디어재단 공동주최]  2025 캠퍼스온에어 ESG 영상 공모전: https://www.hansung.ac.kr/bbs/hansung/143/271119/artclView.do'
+                - '🔗 (비교과, 경품) 2025 HS 대학혁신지원사업 페스티벌 개최 안내: https://www.hansung.ac.kr/bbs/hansung/143/271107/artclView.do'
+            suggestedQuestions:
+              type: array
+              description: 추천 질문 목록 (이모지와 대괄호 포함)
+              items:
+                type: string
+              example:
+                - '[💬 공학 경진 대회에 참가하려면 어떤 준비가 필요할까요?]'
+                - '[💬 비교과 포인트는 어떻게 활용할 수 있나요?]'
+                - '[💬 다른 대회나 행사에 대한 정보는 어디서 찾을 수 있나요?]'
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 포스트 ID
+          example: '123'
+        title:
+          type: string
+          description: 포스트 제목
+          example: '[모집] 2025-2학기 창업동아리 모집(2차)'
+        content:
+          type: string
+          description: 포스트 내용
+          example: '한성대학교 창업지원센터에서 2025-2학기 창업동아리를 모집합니다...'
+        summary:
+          type: string
+          description: 포스트 내용 요약 (65자 내외)
+          example: '2025-2학기 창업동아리 모집합니다. 시제품제작비, 창업전문가 멘토링, 창업장학금 등 다양한 혜택이 있습니다.'
+        link:
+          type: string
+          description: 원본 링크
+          example: 'https://www.hansung.ac.kr/bbs/hansung/143/271106/artclView.do'
+        image:
+          type: string
+          nullable: true
+          description: 이미지 URL
+          example: 'https://example.com/image.jpg'
+        category:
+          type: string
+          description: 카테고리
+          example: '한성공지'
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: 시작일
+          example: '2025-09-15T00:00:00.000Z'
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: 종료일
+          example: '2025-09-17T00:00:00.000Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성일
+          example: '2025-09-16T04:03:04.237Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일
+          example: '2025-09-16T04:04:30.000Z'
+
+    UrgentPost:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 포스트 ID
+          example: '20'
+        title:
+          type: string
+          description: 포스트 제목
+          example: '[모집] 2025-2학기 창업동아리 모집(2차)'
+        content:
+          type: string
+          description: 포스트 내용
+          example: '한성대학교 창업지원센터에서 2025-2학기 창업동아리를 모집합니다...'
+        summary:
+          type: string
+          description: 포스트 내용 요약 (65자 내외)
+          example: '2025-2학기 창업동아리 모집합니다. 시제품제작비, 창업전문가 멘토링, 창업장학금 등 다양한 혜택이 있습니다.'
+        link:
+          type: string
+          description: 원본 링크
+          example: 'https://www.hansung.ac.kr/bbs/hansung/143/271106/artclView.do'
+        image:
+          type: string
+          nullable: true
+          description: 이미지 URL
+          example: 'https://example.com/image.jpg'
+        category:
+          type: string
+          description: 카테고리
+          example: '한성공지'
+        startDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: 시작일
+          example: '2025-09-15T00:00:00.000Z'
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: 종료일
+          example: '2025-09-17T00:00:00.000Z'
+        dDay:
+          type: integer
+          description: D-day (종료일까지 남은 일수)
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성일
+          example: '2025-09-16T04:03:04.237Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일
+          example: '2025-09-16T04:04:30.000Z'
+
+    UrgentPostsResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '종료일이 임박한 공지 3개를 조회했습니다.'
+        data:
+          type: object
+          properties:
+            posts:
+              type: array
+              items:
+                $ref: '#/components/schemas/UrgentPost'
+              description: 긴급 공지 목록
+            count:
+              type: integer
+              description: 조회된 공지 개수
+              example: 3
+
+    CategoryPostsResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '한성공지 카테고리의 공지 5개를 조회했습니다.'
+        data:
+          type: object
+          properties:
+            posts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Post'
+              description: 공지 목록
+            nextCursor:
+              type: string
+              nullable: true
+              description: 다음 페이지를 위한 커서 (더 이상 없으면 null)
+              example: '123'
+            hasMore:
+              type: boolean
+              description: 더 많은 데이터가 있는지 여부
+              example: true
+            count:
+              type: integer
+              description: 조회된 공지 개수
+              example: 5
+
+    NotificationPostsResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '알림 설정한 공지 5개를 조회했습니다.'
+        data:
+          type: object
+          properties:
+            posts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Post'
+              description: 알림 설정한 공지 목록
+            nextCursor:
+              type: string
+              nullable: true
+              description: 다음 페이지를 위한 커서 (더 이상 없으면 null)
+              example: '123'
+            hasMore:
+              type: boolean
+              description: 더 많은 데이터가 있는지 여부
+              example: true
+            count:
+              type: integer
+              description: 조회된 공지 개수
+              example: 5
+
+    UserCategoriesResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: '관심 카테고리 조회 성공'
+        data:
+          type: object
+          properties:
+            categories:
+              type: array
+              description: 관심 카테고리 목록
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: 카테고리 ID
+                    example: '1'
+                  name:
+                    type: string
+                    description: 카테고리 이름
+                    example: '한성공지'
+                  createdAt:
+                    type: string
+                    format: date-time
+                    description: 관심 카테고리 추가일
+                    example: '2025-09-16T04:03:04.237Z'
+              example:
+                - id: '1'
+                  name: '한성공지'
+                  createdAt: '2025-09-16T04:03:04.237Z'
+                - id: '2'
+                  name: '취업'
+                  createdAt: '2025-09-16T04:03:04.237Z'
+
+    ToggleCategoryResponse:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "'한성공지' 카테고리를 관심 카테고리에 추가했습니다."
+        data:
+          type: object
+          properties:
+            action:
+              type: string
+              enum: [added, removed]
+              description: 수행된 작업 (추가/제거)
+              example: 'added'
+            categoryName:
+              type: string
+              description: 카테고리 이름
+              example: '한성공지'
+
+tags:
+  - name: 기본
+    description: 기본 엔드포인트
+  - name: 사용자
+    description: 사용자 관련 API
+  - name: 인증
+    description: 인증 관련 API
+  - name: OAuth
+    description: OAuth 관련 API
+  - name: 공지
+    description: 공지 관련 API
+  - name: 알림
+    description: 알림 관련 API
+  - name: 채팅
+    description: 채팅 관련 API

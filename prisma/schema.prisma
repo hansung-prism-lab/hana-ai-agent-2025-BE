@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   BigInt   @id @default(autoincrement())
+  userId               BigInt   @unique @map("user_id")
+  password             String   @db.VarChar(100)
+  name                 String   @db.VarChar(100)
+  firstTrack           String?  @db.VarChar(100)
+  secondTrack          String?  @db.VarChar(100)
+  isNotificationAgreed Boolean  @default(false) @map("is_notification_agreed")
+  createdAt            DateTime @default(now()) @map("created_at") @db.DateTime(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.DateTime(6)
+
+  refreshTokens  RefreshToken[]
+  userCategories UserCategory[]
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        BigInt   @id @default(autoincrement())
+  token     String   @unique @db.VarChar(512)
+  userId    BigInt   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model UserCategory {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt   @map("user_id")
+  categoryId BigInt   @map("category_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("user_categories")
+}
+
+model Category {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userCategories UserCategory[]
+
+  @@map("categories")
+}
+
+model Post {
+  id        BigInt    @id @default(autoincrement()) @map("post_id")
+  title     String    @db.VarChar(255)
+  link      String    @db.Text
+  content   String    @db.Text
+  summary   String    @db.VarChar(100)
+  image     String?   @db.Text
+  category  String    @db.VarChar(100)
+  startDate DateTime? @db.DateTime
+  endDate   DateTime? @db.DateTime
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  notifications Notification[]
+
+  @@map("posts")
+}
+
+model Notification {
+  id        BigInt   @id @default(autoincrement()) @map("notification_id")
+  userId    BigInt   @map("user_id")
+  postId    BigInt   @map("post_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("notifications")
+}
